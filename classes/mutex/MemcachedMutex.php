@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace malkusch\lock\mutex;
 
@@ -9,8 +9,8 @@ use Memcached;
 /**
  * Memcached based spinlock implementation.
  *
- * @author Markus Malkusch <markus@malkusch.de>
- * @link bitcoin:1P5FAZ4QhXCuwYPnLZdk3PJsqePbu1UDDA Donations
+ * @author  Markus Malkusch <markus@malkusch.de>
+ * @link    bitcoin:1P5FAZ4QhXCuwYPnLZdk3PJsqePbu1UDDA Donations
  * @license WTFPL
  */
 class MemcachedMutex extends SpinlockMutex
@@ -29,22 +29,23 @@ class MemcachedMutex extends SpinlockMutex
      * @param string    $name     The lock name.
      * @param Memcached $memcache The connected Memcached API.
      * @param int       $timeout  The time in seconds a lock expires, default is 3.
+     * @param bool      $retry    Retry to acquire the lock of fail immediately.
      *
      * @throws \LengthException The timeout must be greater than 0.
      */
-    public function __construct(string $name, Memcached $memcache, int $timeout = 3)
+    public function __construct(string $name, Memcached $memcache, int $timeout = 3, bool $retry = true)
     {
-        parent::__construct($name, $timeout);
+        parent::__construct($name, $timeout, $retry);
 
         $this->memcache = $memcache;
     }
 
-    protected function acquire(string $key, int $expire): bool
+    protected function acquire(string $key, int $expire) : bool
     {
         return $this->memcache->add($key, true, $expire);
     }
 
-    protected function release(string $key): bool
+    protected function release(string $key) : bool
     {
         return $this->memcache->delete($key);
     }

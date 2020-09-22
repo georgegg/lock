@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace malkusch\lock\mutex;
 
@@ -12,11 +12,11 @@ use Predis\PredisException;
 /**
  * Mutex based on the Redlock algorithm using the Predis API.
  *
- * @author Markus Malkusch <markus@malkusch.de>
+ * @author  Markus Malkusch <markus@malkusch.de>
  * @license WTFPL
  *
- * @link http://redis.io/topics/distlock
- * @link bitcoin:1P5FAZ4QhXCuwYPnLZdk3PJsqePbu1UDDA Donations
+ * @link    http://redis.io/topics/distlock
+ * @link    bitcoin:1P5FAZ4QhXCuwYPnLZdk3PJsqePbu1UDDA Donations
  */
 class PredisMutex extends RedisMutex
 {
@@ -24,20 +24,21 @@ class PredisMutex extends RedisMutex
      * Sets the Redis connections.
      *
      * @param ClientInterface[] $clients The Redis clients.
-     * @param string   $name    The lock name.
-     * @param int      $timeout The time in seconds a lock expires, default is 3.
+     * @param string            $name    The lock name.
+     * @param int               $timeout The time in seconds a lock expires, default is 3.
+     * @param bool              $retry   Retry to acquire the lock of fail immediately.
      *
      * @throws \LengthException The timeout must be greater than 0.
      */
-    public function __construct(array $clients, string $name, int $timeout = 3)
+    public function __construct(array $clients, string $name, int $timeout = 3, bool $retry = true)
     {
-        parent::__construct($clients, $name, $timeout);
+        parent::__construct($clients, $name, $timeout, $retry);
     }
 
     /**
      * @throws LockAcquireException
      */
-    protected function add($redisAPI, string $key, string $value, int $expire): bool
+    protected function add($redisAPI, string $key, string $value, int $expire) : bool
     {
         /** @var ClientInterface $redisAPI */
         try {

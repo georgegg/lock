@@ -2,6 +2,7 @@
 
 namespace malkusch\lock\mutex;
 
+use malkusch\lock\exception\LockAcquireException;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Predis\ClientInterface;
@@ -141,5 +142,36 @@ class PredisMutexTest extends TestCase
         });
 
         $this->assertTrue($executed);
+    }
+
+    public function testEvalScriptFailAcquiringLock()
+    {
+        $this->mutex = new PredisMutex([$this->client], 'test', 5, false);
+        $this->client->expects($this->once())
+            ->method('set')
+            ->with('lock_test', $this->isType('string'), 'EX', 6, 'NX')
+            ->willThrowException($this->createMock(PredisException::class));
+
+        $this->client->expects($this->once())
+            ->method('eval')
+            ->with($this->anything(), 1, 'lock_test', $this->isType('string'))
+            ->willThrowException($this->createMock(PredisException::class));
+
+        $this->logger->expects($this->never())
+            ->method('warning');
+
+        $executed = false;
+        $exception_thrown = null;
+
+        try {
+            $this->mutex->synchronized(function () use (&$executed): void {
+                $executed = true;
+            });
+        } catch (\Exception $e) {
+            $exception_thrown = $e;
+        }
+
+        $this->assertInstanceOf(LockAcquireException::class, $exception_thrown);
+        $this->assertFalse($executed);
     }
 }

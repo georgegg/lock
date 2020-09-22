@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace malkusch\lock\mutex;
 
@@ -16,13 +16,13 @@ use RedisException;
  * the lzf extension, and phpredis is configured to use lzf compression, at
  * least phpredis-4.3.0 is required! For reason, see github issue link.
  *
- * @see https://github.com/phpredis/phpredis/issues/1477
+ * @see     https://github.com/phpredis/phpredis/issues/1477
  *
- * @author Markus Malkusch <markus@malkusch.de>
+ * @author  Markus Malkusch <markus@malkusch.de>
  * @license WTFPL
  *
- * @link http://redis.io/topics/distlock
- * @link bitcoin:1P5FAZ4QhXCuwYPnLZdk3PJsqePbu1UDDA Donations
+ * @link    http://redis.io/topics/distlock
+ * @link    bitcoin:1P5FAZ4QhXCuwYPnLZdk3PJsqePbu1UDDA Donations
  */
 class PHPRedisMutex extends RedisMutex
 {
@@ -33,21 +33,23 @@ class PHPRedisMutex extends RedisMutex
      * called already.
      *
      * @param array<\Redis|\RedisCluster> $redisAPIs The Redis connections.
-     * @param string $name The lock name.
-     * @param int $timeout The time in seconds a lock expires after. Default is
-     * 3 seconds.
+     * @param string                      $name      The lock name.
+     * @param int                         $timeout   The time in seconds a lock expires after. Default is 3 seconds.
+     * @param bool                        $retry     Retry to acquire the lock of fail immediately.
+     *
      * @throws \LengthException The timeout must be greater than 0.
      */
-    public function __construct(array $redisAPIs, string $name, int $timeout = 3)
+    public function __construct(array $redisAPIs, string $name, int $timeout = 3, bool $retry = true)
     {
-        parent::__construct($redisAPIs, $name, $timeout);
+        parent::__construct($redisAPIs, $name, $timeout, $retry);
     }
 
     /**
      * @param \Redis|\RedisCluster $redisApi The Redis or RedisCluster connection.
+     *
      * @throws LockAcquireException
      */
-    protected function add($redisAPI, string $key, string $value, int $expire): bool
+    protected function add($redisAPI, string $key, string $value, int $expire) : bool
     {
         /** @var \Redis $redisAPI */
         try {
@@ -64,6 +66,7 @@ class PHPRedisMutex extends RedisMutex
 
     /**
      * @param \Redis|\RedisCluster $redis The Redis or RedisCluster connection.
+     *
      * @throws LockReleaseException
      */
     protected function evalScript($redis, string $script, int $numkeys, array $arguments)
@@ -96,10 +99,11 @@ class PHPRedisMutex extends RedisMutex
     /**
      * Determines if lzf compression is enabled for the given connection.
      *
-     * @param  \Redis|\RedisCluster $redis The Redis or RedisCluster connection.
+     * @param \Redis|\RedisCluster $redis The Redis or RedisCluster connection.
+     *
      * @return bool TRUE if lzf compression is enabled, false otherwise.
      */
-    private function hasLzfCompression($redis): bool
+    private function hasLzfCompression($redis) : bool
     {
         if (!\defined('Redis::COMPRESSION_LZF')) {
             return false;

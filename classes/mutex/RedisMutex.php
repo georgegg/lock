@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace malkusch\lock\mutex;
 
@@ -13,11 +13,11 @@ use Psr\Log\NullLogger;
 /**
  * Mutex based on the Redlock algorithm.
  *
- * @author Markus Malkusch <markus@malkusch.de>
+ * @author  Markus Malkusch <markus@malkusch.de>
  * @license WTFPL
  *
- * @link http://redis.io/topics/distlock
- * @link bitcoin:1P5FAZ4QhXCuwYPnLZdk3PJsqePbu1UDDA Donations
+ * @link    http://redis.io/topics/distlock
+ * @link    bitcoin:1P5FAZ4QhXCuwYPnLZdk3PJsqePbu1UDDA Donations
  */
 abstract class RedisMutex extends SpinlockMutex implements LoggerAwareInterface
 {
@@ -42,12 +42,13 @@ abstract class RedisMutex extends SpinlockMutex implements LoggerAwareInterface
      * @param array  $redisAPIs The Redis APIs.
      * @param string $name      The lock name.
      * @param int    $timeout   The time in seconds a lock expires, default is 3.
+     * @param bool   $retry     Retry to acquire the lock of fail immediately.
      *
      * @throws \LengthException The timeout must be greater than 0.
      */
-    public function __construct(array $redisAPIs, string $name, int $timeout = 3)
+    public function __construct(array $redisAPIs, string $name, int $timeout = 3, bool $retry = true)
     {
-        parent::__construct($name, $timeout);
+        parent::__construct($name, $timeout, $retry);
 
         $this->redisAPIs = $redisAPIs;
         $this->logger = new NullLogger();
@@ -68,7 +69,7 @@ abstract class RedisMutex extends SpinlockMutex implements LoggerAwareInterface
         $this->logger = $logger;
     }
 
-    protected function acquire(string $key, int $expire): bool
+    protected function acquire(string $key, int $expire) : bool
     {
         // 1. This differs from the specification to avoid an overflow on 32-Bit systems.
         $time = microtime(true);
@@ -122,7 +123,7 @@ abstract class RedisMutex extends SpinlockMutex implements LoggerAwareInterface
         return false;
     }
 
-    protected function release(string $key): bool
+    protected function release(string $key) : bool
     {
         /*
          * All Redis commands must be analyzed before execution to determine which keys the command will operate on. In
@@ -161,9 +162,10 @@ abstract class RedisMutex extends SpinlockMutex implements LoggerAwareInterface
      * Returns if a count is the majority of all servers.
      *
      * @param int $count The count.
+     *
      * @return bool True if the count is the majority.
      */
-    private function isMajority(int $count): bool
+    private function isMajority(int $count) : bool
     {
         return $count > count($this->redisAPIs) / 2;
     }
@@ -171,23 +173,23 @@ abstract class RedisMutex extends SpinlockMutex implements LoggerAwareInterface
     /**
      * Sets the key only if such key doesn't exist at the server yet.
      *
-     * @param mixed $redisAPI The connected Redis API.
-     * @param string $key The key.
-     * @param string $value The value.
-     * @param int $expire The TTL seconds.
+     * @param mixed  $redisAPI The connected Redis API.
+     * @param string $key      The key.
+     * @param string $value    The value.
+     * @param int    $expire   The TTL seconds.
      *
      * @return bool True, if the key was set.
      */
-    abstract protected function add($redisAPI, string $key, string $value, int $expire): bool;
+    abstract protected function add($redisAPI, string $key, string $value, int $expire) : bool;
 
     /**
-     * @param mixed  $redisAPI The connected Redis API.
-     * @param string $script The Lua script.
-     * @param int    $numkeys The number of values in $arguments that represent Redis key names.
+     * @param mixed  $redisAPI  The connected Redis API.
+     * @param string $script    The Lua script.
+     * @param int    $numkeys   The number of values in $arguments that represent Redis key names.
      * @param array  $arguments Keys and values.
      *
-     * @throws LockReleaseException An unexpected error happened.
      * @return mixed The script result, or false if executing failed.
+     * @throws LockReleaseException An unexpected error happened.
      */
     abstract protected function evalScript($redisAPI, string $script, int $numkeys, array $arguments);
 }

@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace malkusch\lock\mutex;
 
@@ -12,8 +12,8 @@ use malkusch\lock\util\Loop;
 /**
  * Spinlock implementation.
  *
- * @author Markus Malkusch <markus@malkusch.de>
- * @link bitcoin:1P5FAZ4QhXCuwYPnLZdk3PJsqePbu1UDDA Donations
+ * @author  Markus Malkusch <markus@malkusch.de>
+ * @link    bitcoin:1P5FAZ4QhXCuwYPnLZdk3PJsqePbu1UDDA Donations
  * @license WTFPL
  * @internal
  */
@@ -28,6 +28,11 @@ abstract class SpinlockMutex extends LockMutex
      * @var int The timeout in seconds a lock may live.
      */
     private $timeout;
+
+    /**
+     * @var bool Retry to acquire the lock of fail immediately.
+     */
+    private $retry;
 
     /**
      * @var \malkusch\lock\util\Loop The loop.
@@ -47,20 +52,23 @@ abstract class SpinlockMutex extends LockMutex
     /**
      * Sets the timeout.
      *
-     * @param int $timeout The time in seconds a lock expires, default is 3.
+     * @param string $name    lock key name.
+     * @param int    $timeout The time in seconds a lock expires, default is 3.
+     * @param bool   $retry   Retry to acquire the lock of fail immediately.
      *
      * @throws \LengthException The timeout must be greater than 0.
      */
-    public function __construct(string $name, int $timeout = 3)
+    public function __construct(string $name, int $timeout = 3, bool $retry = true)
     {
         $this->timeout = $timeout;
-        $this->loop = new Loop($this->timeout);
+        $this->retry = $retry;
+        $this->loop = new Loop($timeout);
         $this->key = self::PREFIX . $name;
     }
 
-    protected function lock(): void
+    protected function lock() : void
     {
-        $this->loop->execute(function (): void {
+        $this->loop->execute(function () : void {
             $this->acquired = microtime(true);
 
             /*
@@ -70,13 +78,13 @@ abstract class SpinlockMutex extends LockMutex
              * acquires successfully the same key which would then be deleted
              * by this process.
              */
-            if ($this->acquire($this->key, $this->timeout + 1)) {
+            if ($this->acquire($this->key, $this->timeout + 1) || !$this->retry) {
                 $this->loop->end();
             }
         });
     }
 
-    protected function unlock(): void
+    protected function unlock() : void
     {
         $elapsed_time = microtime(true) - $this->acquired;
         if ($elapsed_time > $this->timeout) {
@@ -95,19 +103,20 @@ abstract class SpinlockMutex extends LockMutex
     /**
      * Tries to acquire a lock.
      *
-     * @param string $key The lock key.
-     * @param int $expire The timeout in seconds when a lock expires.
+     * @param string $key    The lock key.
+     * @param int    $expire The timeout in seconds when a lock expires.
      *
-     * @throws LockAcquireException An unexpected error happened.
      * @return bool True, if the lock could be acquired.
+     * @throws LockAcquireException An unexpected error happened.
      */
-    abstract protected function acquire(string $key, int $expire): bool;
+    abstract protected function acquire(string $key, int $expire) : bool;
 
     /**
      * Tries to release a lock.
      *
      * @param string $key The lock key.
+     *
      * @return bool True, if the lock could be released.
      */
-    abstract protected function release(string $key): bool;
+    abstract protected function release(string $key) : bool;
 }
